@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AWX MARKETING WC 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="gum.css" />
+</head>
+<body class="gum">
+  <header class="bar">
+    <div class="word">AWX&nbsp;★&nbsp;WC2026</div>
+    <nav><a href="#standings">Standings</a><a href="#fixtures-sec">Fixtures</a></nav>
+  </header>
+
+  <section class="hero" id="pot">
+    <div class="hero-l">
+      <div class="kicker">WORLD CUP 2026 ✶ OFFICE SWEEPSTAKES</div>
+      <h1>DRAFT THE<br>WORLD CUP.<br>WIN THE POT.</h1>
+      <div class="potbig" id="potbig"></div>
+    </div>
+    <div class="hero-r"><div class="hero-scene" id="hero-char"></div></div>
+  </section>
+
+  <section class="block" id="standings">
+    <h2 class="bh">★ STANDINGS</h2>
+    <div class="gtable" id="board"></div>
+  </section>
+
+  <section class="block alt" id="fixtures-sec">
+    <h2 class="bh">★ FIXTURES <span id="feedtag"></span></h2>
+    <div class="gfix" id="fixtures"></div>
+  </section>
+
+  <footer class="foot">AWX MARKETING · WORLD CUP 2026 SWEEPSTAKES · WINNER TAKES 70%</footer>
+
+  <!-- View-team modal -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-bg" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-x" data-close aria-label="Close">✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="flags.js"></script>
+  <script src="char.js"></script>
+  <script src="api.js"></script>
+  <script src="core.js"></script>
+  <script src="gum.js"></script>
+</body>
+</html>

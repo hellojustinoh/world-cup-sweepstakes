@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Local-only design assets and retired experiments (not part of the site)
+inspo/
+archive/
+deploy/
