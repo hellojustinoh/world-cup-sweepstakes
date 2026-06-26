@@ -6,36 +6,84 @@
 <title>AWX Marketing · WC 2026 Sweepstakes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@500;600&display=swap" rel="stylesheet" />
-<style>
-  * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
-    font-family: "Inter", system-ui, sans-serif; color: #15171c; background: #f6f1e7; }
-  .wrap { width: min(560px, 100%); text-align: center; }
-  .eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: 12px; font-weight: 600; color: #5b63f5; margin-bottom: 14px; }
-  h1 { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; letter-spacing: -.02em; font-size: clamp(30px, 6vw, 44px); line-height: 1.05; margin: 0 0 12px; }
-  p { color: #6b6b73; font-size: 16px; margin: 0 0 30px; }
-  .cards { display: grid; gap: 14px; }
-  a.card { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid #edeef1;
-    border-radius: 18px; padding: 20px 22px; text-align: left; box-shadow: 0 1px 2px rgba(20,23,28,.04), 0 12px 30px rgba(20,23,28,.06);
-    transition: transform .12s ease, box-shadow .12s ease; }
-  a.card:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(20,23,28,.04), 0 18px 40px rgba(20,23,28,.1); }
-  .card h2 { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 19px; margin: 0 0 4px; }
-  .card span { color: #8a8a93; font-size: 14px; }
-  .card .go { float: right; color: #5b63f5; font-weight: 700; }
-  footer { margin-top: 26px; font-size: 13px; color: #8a8a93; }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="home.css" />
 </head>
-<body>
-  <div class="wrap">
-    <div class="eyebrow">World Cup 2026 · Office sweepstakes</div>
-    <h1>AWX Marketing<br>WC 2026 Sweepstakes</h1>
-    <p>Twelve players, 48 nations, one pot. Pick a look.</p>
-    <div class="cards">
-      <a class="card" href="home.html"><span class="go">View →</span><h2>Warm Editorial</h2><span>Homerun-inspired: cream + ink, flag avatars</span></a>
-      <a class="card" href="gum.html"><span class="go">View →</span><h2>Bold Print</h2><span>Gumroad-inspired: neo-brutalist colour blocks</span></a>
+<body class="home">
+  <header class="nav">
+    <div class="nav-in wrap">
+      <a class="brand" href="#top"><span class="brand-mark">AWX</span> <span class="brand-rest">WC2026</span></a>
+      <nav class="nav-links">
+        <a href="#standings">Standings</a>
+        <a href="#fixtures">Fixtures</a>
+        <a href="#pot" class="pill-ghost" id="navpot">The pot</a>
+      </nav>
     </div>
-    <footer>Champion's owner takes 70% of the pot · runner-up's owner takes 30%</footer>
+  </header>
+
+  <main id="top">
+    <!-- HERO ----------------------------------------------------------------->
+    <section class="wrap">
+      <div class="hero">
+        <div class="hero-l">
+          <div class="eyebrow">World Cup 2026 · Office sweepstakes</div>
+          <h1>Draft the<br>World&nbsp;Cup.<br><span class="hl">Win the pot.</span></h1>
+          <p class="lede">Twelve of us drafted four nations apiece across four tiers. Own the team that lifts the trophy and you take <b>70%</b> of the pot. Runner-up keeps <b>30%</b>.</p>
+          <div class="hero-cta">
+            <a href="#standings" class="btn-primary" id="potbtn">The pot</a>
+            <span class="hero-stat" id="herostat">12 players · 48 teams</span>
+          </div>
+        </div>
+        <aside class="hero-r">
+          <div class="lead-card" id="leadcard"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- STANDINGS ------------------------------------------------------------>
+    <section class="wrap sec" id="standings">
+      <div class="sec-head">
+        <div>
+          <h2>Standings</h2>
+          <p class="sec-sub">Live points from real results. Win prob models who ends up owning the champion.</p>
+        </div>
+      </div>
+      <div class="card board" id="board"></div>
+    </section>
+
+    <!-- FIXTURES ------------------------------------------------------------->
+    <section class="wrap sec" id="fixtures">
+      <div class="sec-head">
+        <div>
+          <h2>Fixtures</h2>
+          <p class="sec-sub">Every game involving a drafted nation.</p>
+        </div>
+        <span class="feedtag" id="feedtag"></span>
+      </div>
+      <div id="fixwrap"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <span><span class="brand-mark">AWX</span> Marketing · World Cup 2026 Sweepstakes</span>
+      <span class="foot-muted">Champion 70% · Runner-up 30%</span>
+    </div>
+  </footer>
+
+  <!-- View-team modal -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-bg" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-x" data-close aria-label="Close">✕</button>
+      <div id="modal-body"></div>
+    </div>
   </div>
+
+  <script src="data.js"></script>
+  <script src="flags.js"></script>
+  <script src="api.js"></script>
+  <script src="core.js"></script>
+  <script src="home.js"></script>
 </body>
 </html>

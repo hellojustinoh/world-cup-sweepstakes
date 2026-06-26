@@ -8,14 +8,12 @@ players each drafted four nations across four tiers. The owner of the eventual
 It pulls real fixtures and results from the public ESPN scoreboard feed, builds a
 live points table, and models each player's odds of owning the champion.
 
-## Two design variants
+## Design
 
-| File | Style |
-| --- | --- |
-| [`home.html`](home.html) | **Warm Editorial** — Homerun-inspired: cream + ink, friendly grotesque type, circular country-flag avatars |
-| [`gum.html`](gum.html) | **Bold Print** — Gumroad-inspired: neo-brutalist hard borders and flat colour blocks |
-
-[`index.html`](index.html) is a small landing page that links to both.
+**Warm Editorial**, a Homerun-inspired look: cream and ink, a friendly
+grotesque headline face, soft rounded cards, and circular country-flag avatars
+for each player. The whole site is [`index.html`](index.html) plus
+[`home.css`](home.css) / [`home.js`](home.js).
 
 ## Run locally
 
@@ -41,9 +39,8 @@ Shared modules, loaded in order before each page's own script:
   caches to `localStorage` for 30 minutes (manual refresh bypasses it).
 - **`core.js`** — turns results into the points table, computes champion odds,
   and exposes `standings()`, `quests()` (fixtures), `pot()`, and `player()`.
-- **`char.js`** — legacy character art, used only by `gum.html`.
 
-Page-specific files: `home.{css,js}` and `gum.{css,js}`.
+Page-specific files: `home.css` and `home.js`.
 
 ## Updating through the tournament
 
