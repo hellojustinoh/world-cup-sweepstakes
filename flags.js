@@ -122,17 +122,31 @@ function _cells(spec) {
   return `<rect width="12" height="8" fill="${spec.c}"/>`;
 }
 
+/* ---- ISO 3166-1 alpha-2 codes -> real flag icons --------------------------- */
+const FLAG_ISO = {
+  "France": "fr", "Uruguay": "uy", "Panama": "pa", "Cabo Verde": "cv",
+  "England": "gb-eng", "Ecuador": "ec", "Algeria": "dz", "Bosnia & Herzegovina": "ba",
+  "Netherlands": "nl", "Switzerland": "ch", "Paraguay": "py", "New Zealand": "nz",
+  "Germany": "de", "South Korea": "kr", "DR Congo": "cd", "Haiti": "ht",
+  "Colombia": "co", "Japan": "jp", "Sweden": "se", "Uzbekistan": "uz",
+  "Argentina": "ar", "Senegal": "sn", "Scotland": "gb-sct", "Qatar": "qa",
+  "Portugal": "pt", "United States": "us", "Côte d'Ivoire": "ci", "Curaçao": "cw",
+  "Morocco": "ma", "Iran": "ir", "Egypt": "eg", "Iraq": "iq",
+  "Croatia": "hr", "Mexico": "mx", "Norway": "no", "South Africa": "za",
+  "Spain": "es", "Australia": "au", "Czechia": "cz", "Jordan": "jo",
+  "Brazil": "br", "Türkiye": "tr", "Tunisia": "tn", "Ghana": "gh",
+  "Belgium": "be", "Austria": "at", "Canada": "ca", "Saudi Arabia": "sa",
+};
+// Real flag artwork from the flag-icons set, served via jsDelivr.
+const FLAG_BASE = "https://cdn.jsdelivr.net/npm/flag-icons@7/flags/4x3/";
+
+// Accurate flag icon for a nation: the real flag rendered as an <img> that fills
+// its container. Falls back to the nation's primary colour for any unmapped name.
+// The `pixel` option is accepted for call-site compatibility but no longer used.
 function renderFlag(team, opts = {}) {
-  const spec = FLAGS[team] || { c: "#9aa6b2" };
-  if (opts.pixel !== false) {
-    return `<svg class="flag" width="100%" viewBox="0 0 12 8" shape-rendering="crispEdges" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${_cells(spec)}</svg>`;
+  const code = FLAG_ISO[team];
+  if (!code) {
+    return `<svg width="100%" height="100%" viewBox="0 0 12 8" preserveAspectRatio="none" style="display:block"><rect width="12" height="8" fill="${flagPrimary(team)}"/></svg>`;
   }
-  // smooth / vector
-  let inner;
-  if (VEC[team]) inner = VEC[team]();
-  else if (spec.h || spec.v) inner = _stripes(spec.h || spec.v, !!spec.h, false);
-  else inner = `<rect width="12" height="8" fill="${spec.c}"/>`;
-  const uid = "fl" + (_flUid++);
-  const sheen = `<rect x="0" y="0" width="12" height="3.7" fill="#ffffff" opacity="0.12"/>`;
-  return `<svg class="flag-smooth" width="100%" viewBox="0 0 12 8" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="${uid}"><rect width="12" height="8" rx="1.1"/></clipPath></defs><g clip-path="url(#${uid})">${inner}${sheen}</g></svg>`;
+  return `<img class="flag-img" src="${FLAG_BASE}${code}.svg" alt="${team} flag" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block" />`;
 }

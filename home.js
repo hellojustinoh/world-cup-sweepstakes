@@ -3,10 +3,13 @@
 (() => {
   const $ = (s) => document.querySelector(s);
 
-  // Circular avatar = the player's Tier-1 nation flag, ringed in its flag colour.
   const tier1 = (picks) => (picks.find((p) => p.tier === 1) || picks[0]).team;
-  const avatar = (team, size) =>
-    `<span class="favatar" style="--av:${size || 44}px;--ring:${flagPrimary(team)}">${renderFlag(team, { pixel: false })}</span>`;
+  // Manager portrait, ringed in their Tier-1 nation's colour. Falls back to that
+  // nation's flag until the illustrated portraits (managers.js) finish loading.
+  const avatar = (name, t1, size) => {
+    const portrait = (window.MANAGERS || {})[name] || renderFlag(t1, { pixel: false });
+    return `<span class="favatar" style="--av:${size || 44}px;--ring:${flagPrimary(t1)}">${portrait}</span>`;
+  };
 
   // ---- Hero ----------------------------------------------------------------
   function hero() {
@@ -21,7 +24,7 @@
     $("#leadcard").innerHTML = `
       <span class="lead-badge">● Top of the table</span>
       <div class="lead-top">
-        ${avatar(t1, 56)}
+        ${avatar(lead.name, t1, 56)}
         <div>
           <div class="lead-name">${lead.name}</div>
           <div class="lead-role">${lead.points} pts · ${lead.alive}/4 teams alive</div>
@@ -35,15 +38,15 @@
   function board() {
     const head = `<div class="bhead">
       <div class="h-r">#</div><div></div><div>Player</div>
-      <div class="h-info">Win prob<span class="qmark">?</span><span class="tip">Modelled chance this player owns the eventual <b>champion</b> — from each team's strength rating, how far it has advanced, and live form. Updates with results.</span></div>
-      <div class="h-r">Pts</div>
+      <div class="h-info">Win prob<span class="qmark">?</span><span class="tip">Modelled chance this player owns the eventual <b>champion</b>, from each team's strength rating, how far it has advanced, and live form. Updates with results.</span></div>
+      <div class="h-r"><span class="h-info">Pts<span class="qmark">?</span><span class="tip">Football points from real results: <b>win 3</b>, <b>draw 1</b>, <b>loss 0</b>, counted across every game. A player's total is the sum of all four of their teams.</span></span></div>
     </div>`;
     $("#board").innerHTML = head + Core.standings().map((r, i) => {
       const t1 = tier1(r.picks);
       const tag = i === 0 ? `<span class="b-tag">Top</span>` : "";
       return `<div class="brow ${i === 0 ? "lead" : ""} ${r.out ? "out" : ""}" data-player="${r.name}">
         <div class="b-rk">${i + 1}</div>
-        <div>${avatar(t1, 40)}</div>
+        <div>${avatar(r.name, t1, 40)}</div>
         <div>
           <div class="b-nm">${r.name}${tag}</div>
           <div class="b-sub">${r.out ? "All teams knocked out" : "Furthest: " + r.bestLabel} · ${r.alive}/4 alive</div>
@@ -96,7 +99,7 @@
       : ownsRunner ? `<span class="chip win">🥈 Wins ${p.cur}${p.runnerUpAmt.toFixed(0)}</span>` : "";
     $("#modal-body").innerHTML = `
       <div class="mh">
-        ${avatar(t1, 60)}
+        ${avatar(name, t1, 60)}
         <div>
           <div class="mh-name">${name}</div>
           <div class="mh-meta"><span class="chip prob">${st ? st.winPct : 0}% win prob</span><span class="chip">${st ? st.points : 0} pts</span><span class="chip">${pl.alive}/4 alive</span>${winChip}</div>
@@ -117,6 +120,9 @@
   });
   $("#modal").addEventListener("click", (e) => { if (e.target.hasAttribute("data-close")) closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+  // Upgrade flag fallbacks to illustrated portraits once managers.js is ready.
+  window.onManagersReady = () => { hero(); board(); };
 
   // ---- Boot + 30-min live refresh ------------------------------------------
   hero();
