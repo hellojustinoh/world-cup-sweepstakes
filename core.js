@@ -6,7 +6,14 @@ const Core = (() => {
   const OWNER = {}, TIER = {}, PINDEX = {};
   PLAYERS.forEach((p, i) => { PINDEX[p.name] = i; p.picks.forEach((pk) => { OWNER[pk.team] = p.name; TIER[pk.team] = pk.tier; }); });
 
-  const effStage = (t) => (CONFIG.demoStandings && DEMO_STAGES[t]) || (TEAM_META[t] && TEAM_META[t].stage) || "group";
+  // Each team's stage is derived live from the feed (see computeStages). Falls
+  // back to the manual TEAM_META.stage only when the feed has no games for a team.
+  let STAGES = {};
+  const effStage = (t) => {
+    if (CONFIG.demoStandings && DEMO_STAGES[t]) return DEMO_STAGES[t];
+    if (STAGES[t]) return STAGES[t];
+    return (TEAM_META[t] && TEAM_META[t].stage) || "group";
+  };
   const owner = (t) => OWNER[t] || null;
   const bestStage = (p) => p.picks.reduce((b, pk) => (STAGE_ORDER[effStage(pk.team)] > STAGE_ORDER[b] ? effStage(pk.team) : b), "out");
   const barPct = (team) => { const st = effStage(team); if (st === "out") return 100; const r = STAGE_ORDER[st] < 0 ? 0 : Math.min(STAGE_ORDER[st], 7); return Math.max(9, Math.round((r / 7) * 100)); };
@@ -30,11 +37,56 @@ const Core = (() => {
   const teamGd = (t) => (STATS[t] && STATS[t].gd) || 0;
   const teamPlayed = (t) => (STATS[t] && STATS[t].played) || 0;
 
-  // Fetch the live feed (12h-cached) and recompute the results table.
+  // ---- Derive each team's stage from the live feed -------------------------
+  // Each fixture carries its real round (ESPN season.slug). A team with an
+  // upcoming fixture is alive in the round it is about to play; a team whose
+  // games are all finished with none upcoming is out — unless their last game
+  // was the final, which resolves to champion / runner-up by the result. So
+  // standings, win probability and elimination all track results with no manual
+  // updates.
+  const SLUG2STAGE = {
+    "group-stage": "group", "round-of-32": "r32", "round-of-16": "r16",
+    "quarterfinals": "qf", "quarterfinal": "qf", "semifinals": "sf", "semifinal": "sf",
+    "final": "final", "third-place": "sf",
+  };
+  function computeStages(fixtures) {
+    const agg = {};
+    const get = (t) => (agg[t] = agg[t] || { future: null, last: null });
+    (fixtures || []).forEach((f) => {
+      const stage = SLUG2STAGE[f.roundSlug] || "group";
+      const ord = STAGE_ORDER[stage];
+      const done = f.homeScore != null && f.awayScore != null;
+      [["home", "away"], ["away", "home"]].forEach(([side]) => {
+        const t = f[side];
+        if (!t || !TEAM_META[t]) return; // only track known nations
+        const g = get(t);
+        if (done) {
+          const gf = side === "home" ? f.homeScore : f.awayScore;
+          const ga = side === "home" ? f.awayScore : f.homeScore;
+          if (!g.last || ord >= g.last.ord) g.last = { stage, ord, win: gf > ga };
+        } else if (!g.future || ord > g.future.ord) {
+          g.future = { stage, ord };
+        }
+      });
+    });
+    const stages = {};
+    Object.entries(agg).forEach(([t, g]) => {
+      if (g.future) { stages[t] = g.future.stage; return; }      // alive: about to play this round
+      if (g.last) {
+        stages[t] = g.last.stage === "final" ? (g.last.win ? "champion" : "runnerUp") : "out";
+      } else {
+        stages[t] = "group";
+      }
+    });
+    return stages;
+  }
+
+  // Fetch the live feed (cached) and recompute the results table + stages.
   async function load(force) {
     let live = { source: "none", fixtures: [] };
     try { if (typeof SweepsAPI !== "undefined") live = await SweepsAPI.getSchedule(force); } catch (e) {}
     STATS = computeStats(live.fixtures || []);
+    STAGES = computeStages(live.fixtures || []);
     return live;
   }
 

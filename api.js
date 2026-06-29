@@ -39,6 +39,16 @@ const SweepsAPI = (() => {
     return res.json();
   }
 
+  // ESPN puts the real bracket round in event.season.slug; the notes headline
+  // is usually empty. Map the slug to a readable label.
+  const ROUND_LABEL = {
+    "group-stage": "Group stage", "round-of-32": "Round of 32", "round-of-16": "Round of 16",
+    "quarterfinals": "Quarter-final", "semifinals": "Semi-final", "final": "Final", "third-place": "Third place",
+  };
+  // A competitor that is an unresolved bracket slot ("Round of 32 3 Winner",
+  // "Group A Runner-Up", ...) rather than an actual nation — show these as TBD.
+  const PLACEHOLDER = /winner|runner-?up|loser|round of|group [a-z]\b|place/i;
+
   function normalizeEvent(e) {
     const c = e.competitions && e.competitions[0];
     if (!c || !c.competitors) return null;
@@ -51,19 +61,24 @@ const SweepsAPI = (() => {
     const score = (x) => ((state === "post" || state === "in") && x.score != null && x.score !== "") ? Number(x.score) : null;
     let time = "";
     try { time = new Date(e.date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); } catch (err) { time = (e.date || "").slice(11, 16); }
-    const round = (c.notes && c.notes[0] && c.notes[0].headline) || "Group stage";
+    const slug = (e.season && e.season.slug) || "";
+    const round = ROUND_LABEL[slug] || (c.notes && c.notes[0] && c.notes[0].headline) || "Group stage";
+    const rh = resolveTeam(hn), ra = resolveTeam(an);
     return {
       id: e.id,
       date: (e.date || "").slice(0, 10),
       time,
-      home: resolveTeam(hn) || hn,
-      away: resolveTeam(an) || an,
-      homeOwned: !!resolveTeam(hn),
-      awayOwned: !!resolveTeam(an),
+      home: rh || hn,
+      away: ra || an,
+      homeOwned: !!rh,
+      awayOwned: !!ra,
+      homeTBD: !rh && PLACEHOLDER.test(hn || ""),
+      awayTBD: !ra && PLACEHOLDER.test(an || ""),
       homeScore: score(H),
       awayScore: score(A),
       status: played ? "FT" : state === "in" ? "LIVE" : "Not Started",
       round,
+      roundSlug: slug,
     };
   }
 
@@ -102,9 +117,9 @@ const SweepsAPI = (() => {
     return { source: "none", fixtures: [] };
   }
 
-  // 30-minute cache so the feed feels live on match days while sparing the API.
+  // 15-minute cache so the feed feels live on match days while sparing the API.
   const CACHE_KEY = "sweeps.schedule.v2";
-  const CACHE_TTL = 30 * 60 * 1000;
+  const CACHE_TTL = 15 * 60 * 1000;
   function bust() { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} }
   function readCache() {
     try { const c = JSON.parse(localStorage.getItem(CACHE_KEY)); if (c && Date.now() - c.t < CACHE_TTL) return c; } catch (e) {}

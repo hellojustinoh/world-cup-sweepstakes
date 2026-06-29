@@ -66,13 +66,15 @@
     const rb = $("#feedtag .refresh-btn");
     if (rb) rb.onclick = async () => { rb.classList.add("spin"); await Core.load(true); board(); hero(); await fixtures(); };
 
+    const flagCell = (name, tbd) => tbd ? `<span class="m-flag tbd">?</span>` : `<span class="m-flag">${renderFlag(name, { pixel: false })}</span>`;
+    const nameCell = (name, tbd) => tbd ? `<span class="m-tm tbd">TBD</span>` : `<span class="m-tm">${name}</span>`;
     const row = (f) => {
       const mid = f.played ? `<span class="mscore">${f.homeScore}–${f.awayScore}</span>` : `<span class="mvs">VS</span>`;
       const date = (() => { try { return new Date(f.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }); } catch (e) { return f.date; } })();
       return `<div class="match ${f.rivalry ? "rivalry" : ""}">
-        <div class="m-side"><span class="m-flag">${renderFlag(f.home, { pixel: false })}</span><span class="m-tm">${f.home}</span></div>
-        <div class="m-mid">${mid}<span class="m-when">${f.played ? "FT · " + date : date + (f.time ? " · " + f.time : "")}</span>${f.rivalry ? `<span class="m-riv">⚔ ${f.oh} v ${f.oa}</span>` : ""}</div>
-        <div class="m-side r"><span class="m-tm">${f.away}</span><span class="m-flag">${renderFlag(f.away, { pixel: false })}</span></div>
+        <div class="m-side">${flagCell(f.home, f.homeTBD)}${nameCell(f.home, f.homeTBD)}</div>
+        <div class="m-mid">${mid}<span class="m-round">${f.round || ""}</span><span class="m-when">${f.played ? "FT · " + date : date + (f.time ? " · " + f.time : "")}</span>${f.rivalry ? `<span class="m-riv">⚔ ${f.oh} v ${f.oa}</span>` : ""}</div>
+        <div class="m-side r">${nameCell(f.away, f.awayTBD)}${flagCell(f.away, f.awayTBD)}</div>
       </div>`;
     };
     const up = res.upcoming || [], done = res.recent || [];
@@ -119,5 +121,5 @@
   // ---- Boot + 30-min live refresh ------------------------------------------
   hero();
   (async () => { await Core.load(); hero(); board(); fixtures(); })();
-  setInterval(async () => { await Core.load(true); hero(); board(); fixtures(); }, 30 * 60 * 1000);
+  setInterval(async () => { await Core.load(true); hero(); board(); fixtures(); }, 15 * 60 * 1000);
 })();

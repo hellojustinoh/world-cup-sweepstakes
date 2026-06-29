@@ -137,10 +137,13 @@ section[id] { scroll-margin-top: 84px; }
 .m-side.r { flex-direction: row-reverse; text-align: right; }
 .m-flag { width: 30px; height: 21px; border-radius: 5px; overflow: hidden; flex: none; box-shadow: 0 0 0 1px var(--line2); }
 .m-flag svg { width: 100% !important; height: 100% !important; display: block; }
+.m-flag.tbd { display: grid; place-items: center; background: #eef0f3; color: #9aa0aa; font-weight: 800; font-size: 12px; }
 .m-tm { font-family: "Plus Jakarta Sans"; font-weight: 700; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-tm.tbd { color: #9aa0aa; }
 .m-mid { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; }
 .mscore { font-family: "Plus Jakarta Sans"; font-weight: 800; font-size: 18px; color: var(--ink); }
 .mvs { font-weight: 700; font-size: 12px; color: var(--muted); }
+.m-round { font-size: 9.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
 .m-when { font-size: 11px; color: var(--muted); font-weight: 600; }
 .m-riv { font-size: 10px; font-weight: 700; color: var(--blurple); background: var(--blurple-soft); padding: 2px 7px; border-radius: 999px; margin-top: 1px; }
 
