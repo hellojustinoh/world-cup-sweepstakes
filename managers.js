@@ -12,12 +12,12 @@
     Vivek:     { s: "cf9560", h: "241c20", hair: "shortCombover" },   // Indian M
     Benoit:    { s: "ffe3cd", h: "6b4a32", hair: "fade" },            // French caucasian M
     Yasmin:    { s: "efc59a", h: "241e18", hair: "long" },            // Persian F
-    Justin:    { s: "ffdcc0", h: "221d28", hair: "buzzcut" },         // Korean M
+    Justin:    { s: "ffdcc0", h: "17171c", hair: "shortCombover" },   // Korean M, black hair
     Shermaine: { s: "ffd9b8", h: "241f2a", hair: "straightBun" },     // Singaporean F
     Katie:     { s: "ffe4cf", h: "c79a4e", hair: "bobBangs" },        // NZ caucasian F
     David:     { s: "ffdcc0", h: "1f1a24", hair: "shortComboverChops" }, // Chinese M
     Regina:    { s: "ffd6b4", h: "241f2a", hair: "extraLong" },       // Singaporean F
-    Meiyin:    { s: "ffd9b8", h: "221d26", hair: "curly" },           // Singaporean F
+    Meiyin:    { s: "ffd9b8", h: "17171c", hair: "long" },            // Singaporean F, medium-long black hair
     Vernette:  { s: "f6cda0", h: "33241c", hair: "curlyBun" },        // Malaysian F
     Sri:       { s: "bd7f4a", h: "201820", hair: "curlyHighTop" },    // Indian M
   };
