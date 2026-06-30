@@ -67,6 +67,7 @@ const SweepsAPI = (() => {
     return {
       id: e.id,
       date: (e.date || "").slice(0, 10),
+      iso: e.date || "",
       time,
       home: rh || hn,
       away: ra || an,
@@ -76,6 +77,8 @@ const SweepsAPI = (() => {
       awayTBD: !ra && PLACEHOLDER.test(an || ""),
       homeScore: score(H),
       awayScore: score(A),
+      homeWin: !!H.winner,
+      awayWin: !!A.winner,
       status: played ? "FT" : state === "in" ? "LIVE" : "Not Started",
       round,
       roundSlug: slug,

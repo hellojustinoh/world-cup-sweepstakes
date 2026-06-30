@@ -3,6 +3,26 @@
 (() => {
   const $ = (s) => document.querySelector(s);
 
+  // Light emoji rain over an element — used to mourn a freshly eliminated team.
+  function rainOn(el, emojis) {
+    if (!el || el.querySelector(":scope > .rainfx")) return;
+    const h = el.offsetHeight || 60, w = el.offsetWidth || 200;
+    const n = Math.max(6, Math.min(14, Math.round(w / 60)));
+    let drops = "";
+    for (let i = 0; i < n; i++) {
+      const em = emojis[i % emojis.length];
+      const left = ((i + ((i * 37) % 10) / 10) * (100 / n)).toFixed(1);
+      const size = 12 + ((i * 13) % 8);
+      const dur = (2.2 + ((i * 17) % 16) / 10).toFixed(2);
+      const delay = (-((i * 23) % 30) / 10).toFixed(2);
+      drops += `<span class="drop" style="left:${left}%;font-size:${size}px;--fall:${h + 26}px;animation-duration:${dur}s;animation-delay:${delay}s">${em}</span>`;
+    }
+    const layer = document.createElement("div");
+    layer.className = "rainfx";
+    layer.innerHTML = drops;
+    el.appendChild(layer);
+  }
+
   const tier1 = (picks) => (picks.find((p) => p.tier === 1) || picks[0]).team;
   // Manager portrait, ringed in their Tier-1 nation's colour. Falls back to that
   // nation's flag until the illustrated portraits (managers.js) finish loading.
@@ -41,10 +61,12 @@
       <div class="h-info">Win prob<span class="qmark">?</span><span class="tip">Modelled chance this player owns the eventual <b>champion</b>, from each team's strength rating, how far it has advanced, and live form. Updates with results.</span></div>
       <div class="h-r"><span class="h-info">Pts<span class="qmark">?</span><span class="tip">Football points from real results: <b>win 3</b>, <b>draw 1</b>, <b>loss 0</b>, counted across every game. A player's total is the sum of all four of their teams.</span></span></div>
     </div>`;
-    $("#board").innerHTML = head + Core.standings().map((r, i) => {
+    const rows = Core.standings();
+    $("#board").innerHTML = head + rows.map((r, i) => {
       const t1 = tier1(r.picks);
       const tag = i === 0 ? `<span class="b-tag">Top</span>` : "";
-      return `<div class="brow ${i === 0 ? "lead" : ""} ${r.out ? "out" : ""}" data-player="${r.name}">
+      const mourn = r.recentOut && r.recentOut.length ? " mourning" : "";
+      return `<div class="brow ${i === 0 ? "lead" : ""} ${r.out ? "out" : ""}${mourn}" data-player="${r.name}">
         <div class="b-rk">${i + 1}</div>
         <div>${avatar(r.name, t1, 40)}</div>
         <div>
@@ -55,6 +77,10 @@
         <div class="b-pts">${r.points}<small>pts</small></div>
       </div>`;
     }).join("");
+    // Rain tombstones on anyone who lost a team in the last 24 hours.
+    rows.forEach((r) => {
+      if (r.recentOut && r.recentOut.length) rainOn($(`#board .brow[data-player="${r.name}"]`), ["🪦", "😢"]);
+    });
   }
 
   // ---- Fixtures ------------------------------------------------------------
@@ -106,11 +132,13 @@
         </div>
       </div>
       <div class="mteams">${pl.picks.map((pk) => `
-        <div class="mteam ${pk.dead ? "dead" : ""}">
+        <div class="mteam ${pk.dead ? "dead" : ""}${pk.recentOut ? " mourning" : ""}" data-team="${pk.team}">
           <span class="m-flag">${renderFlag(pk.team, { pixel: false })}</span>
           <div><div class="mt-t">${pk.tierEmoji} Tier ${pk.tier} · ${pk.tierLabel}</div><div class="mt-n">${pk.team}</div><div class="mt-s">${pk.stageLabel}</div></div>
         </div>`).join("")}</div>`;
     $("#modal").hidden = false;
+    // Rain on the specific team(s) eliminated in the last 24 hours.
+    pl.picks.filter((pk) => pk.recentOut).forEach((pk) => rainOn($(`#modal-body .mteam[data-team="${pk.team}"]`), ["🪦", "😢"]));
   }
   const closeModal = () => { $("#modal").hidden = true; };
 

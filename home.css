@@ -107,7 +107,19 @@ section[id] { scroll-margin-top: 84px; }
 .h-info .tip b { color: var(--amber); }
 .h-info:hover .tip { opacity: 1; }
 
-.brow { border-top: 1px solid var(--line2); cursor: pointer; border-radius: 14px; transition: background .12s ease, transform .12s ease; }
+.brow { position: relative; border-top: 1px solid var(--line2); cursor: pointer; border-radius: 14px; transition: background .12s ease, transform .12s ease; }
+.brow.mourning { background: linear-gradient(90deg, #f6ecec, #fff); }
+
+/* Emoji rain (mourning a freshly eliminated team) */
+.rainfx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; border-radius: inherit; z-index: 3; }
+.rainfx .drop { position: absolute; top: 0; line-height: 1; opacity: 0; will-change: transform, opacity; animation-name: emojiFall; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes emojiFall {
+  0% { transform: translateY(-26px) rotate(-12deg); opacity: 0; }
+  12% { opacity: .85; }
+  85% { opacity: .85; }
+  100% { transform: translateY(var(--fall, 70px)) rotate(26deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .rainfx { display: none; } }
 .brow:first-of-type { border-top: 0; }
 .brow:hover { background: #faf8f3; transform: translateX(2px); }
 .brow.lead { background: linear-gradient(90deg, #fbf6ea, #fff); }
@@ -166,8 +178,9 @@ section[id] { scroll-margin-top: 84px; }
 .chip.win { background: var(--green-soft); color: var(--green); }
 .chip.prob { background: var(--blurple-soft); color: var(--blurple); }
 .mteams { display: flex; flex-direction: column; gap: 10px; }
-.mteam { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--line2); border-radius: 14px; min-width: 0; }
+.mteam { position: relative; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--line2); border-radius: 14px; min-width: 0; }
 .mteam.dead { opacity: .5; }
+.mteam.mourning { opacity: 1; border-color: #e6cccc; background: linear-gradient(90deg, #f7eded, #fff); }
 .mteam .m-flag { width: 38px; height: 27px; }
 .mteam > div { min-width: 0; }
 .mt-t { font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }

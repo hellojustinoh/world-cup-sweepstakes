@@ -9,6 +9,7 @@ const Core = (() => {
   // Each team's stage is derived live from the feed (see computeStages). Falls
   // back to the manual TEAM_META.stage only when the feed has no games for a team.
   let STAGES = {};
+  let ELIM = {}; // team -> ms timestamp of the game that eliminated them
   const effStage = (t) => {
     if (CONFIG.demoStandings && DEMO_STAGES[t]) return DEMO_STAGES[t];
     if (STAGES[t]) return STAGES[t];
@@ -38,17 +39,21 @@ const Core = (() => {
   const teamPlayed = (t) => (STATS[t] && STATS[t].played) || 0;
 
   // ---- Derive each team's stage from the live feed -------------------------
-  // Each fixture carries its real round (ESPN season.slug). A team with an
-  // upcoming fixture is alive in the round it is about to play; a team whose
-  // games are all finished with none upcoming is out — unless their last game
-  // was the final, which resolves to champion / runner-up by the result. So
-  // standings, win probability and elimination all track results with no manual
-  // updates.
+  // Each fixture carries its real round (ESPN season.slug) and a winner flag.
+  // Logic that survives the bracket's timing gaps and penalty shootouts:
+  //   - has an upcoming fixture        -> alive, in the round it is about to play
+  //   - else won its last knockout     -> advanced to the next round (its next
+  //                                       fixture just isn't slotted yet)
+  //   - else lost its last knockout    -> out
+  //   - else undecided (e.g. 0-0 pre-pens) -> still in, pending at that round
+  //   - final won / lost              -> champion / runner-up
+  // ELIM records when each out team's losing game kicked off (for the UI).
   const SLUG2STAGE = {
     "group-stage": "group", "round-of-32": "r32", "round-of-16": "r16",
     "quarterfinals": "qf", "quarterfinal": "qf", "semifinals": "sf", "semifinal": "sf",
     "final": "final", "third-place": "sf",
   };
+  const NEXT_STAGE = { r32: "r16", r16: "qf", qf: "sf", sf: "final", final: "champion" };
   function computeStages(fixtures) {
     const agg = {};
     const get = (t) => (agg[t] = agg[t] || { future: null, last: null });
@@ -61,25 +66,40 @@ const Core = (() => {
         if (!t || !TEAM_META[t]) return; // only track known nations
         const g = get(t);
         if (done) {
+          const ms = Date.parse(f.iso || f.date || "") || 0;
           const gf = side === "home" ? f.homeScore : f.awayScore;
           const ga = side === "home" ? f.awayScore : f.homeScore;
-          if (!g.last || ord >= g.last.ord) g.last = { stage, ord, win: gf > ga };
+          const wf = side === "home" ? f.homeWin : f.awayWin;
+          const owf = side === "home" ? f.awayWin : f.homeWin;
+          // Decide by score; fall back to the winner flag for level ties (shootouts).
+          const won = gf > ga || wf;
+          const oppWon = ga > gf || owf;
+          if (!g.last || ms >= g.last.ms) g.last = { stage, ms, won, oppWon };
         } else if (!g.future || ord > g.future.ord) {
           g.future = { stage, ord };
         }
       });
     });
-    const stages = {};
+    const stages = {}, elim = {};
     Object.entries(agg).forEach(([t, g]) => {
-      if (g.future) { stages[t] = g.future.stage; return; }      // alive: about to play this round
-      if (g.last) {
-        stages[t] = g.last.stage === "final" ? (g.last.win ? "champion" : "runnerUp") : "out";
-      } else {
-        stages[t] = "group";
-      }
+      if (g.future) { stages[t] = g.future.stage; return; }       // named in an upcoming fixture
+      const L = g.last;
+      if (!L) { stages[t] = "group"; return; }
+      if (L.stage === "group") { stages[t] = "out"; elim[t] = L.ms; return; } // didn't advance from group
+      if (L.oppWon) { stages[t] = "out"; elim[t] = L.ms; return; }            // lost a knockout
+      if (L.won) { stages[t] = L.stage === "final" ? "champion" : (NEXT_STAGE[L.stage] || "champion"); return; }
+      stages[t] = L.stage; // undecided knockout (pending shootout / in progress)
     });
+    ELIM = elim;
     return stages;
   }
+  // Did this team's elimination happen within `within` ms (default 24h)?
+  const recentlyEliminated = (team, within) => {
+    const ms = ELIM[team];
+    if (!ms) return false;
+    const dt = Date.now() - ms;
+    return dt >= 0 && dt < (within || 24 * 60 * 60 * 1000);
+  };
 
   // Fetch the live feed (cached) and recompute the results table + stages.
   async function load(force) {
@@ -144,7 +164,8 @@ const Core = (() => {
       const played = p.picks.reduce((s, pk) => s + teamPlayed(pk.team), 0);
       const winRaw = p.picks.reduce((s, pk) => s + (prob[pk.team] || 0), 0);
       const winPct = Math.round(winRaw * 100);
-      return { name: p.name, picks: p.picks.slice().sort((a, b) => a.tier - b.tier), best, bestLabel: STAGE_LABEL[best], rank: STAGE_ORDER[best], alive, out: alive === 0, points, gd, played, winPct, winRaw };
+      const recentOut = p.picks.filter((pk) => recentlyEliminated(pk.team)).map((pk) => pk.team);
+      return { name: p.name, picks: p.picks.slice().sort((a, b) => a.tier - b.tier), best, bestLabel: STAGE_LABEL[best], rank: STAGE_ORDER[best], alive, out: alive === 0, points, gd, played, winPct, winRaw, recentOut };
     }).sort((a, b) => b.points - a.points || b.gd - a.gd || b.winRaw - a.winRaw || a.name.localeCompare(b.name));
   }
 
@@ -152,7 +173,8 @@ const Core = (() => {
     const p = PLAYERS.find((x) => x.name === name) || PLAYERS[0];
     const picks = p.picks.slice().sort((a, b) => a.tier - b.tier).map((pk) => ({
       tier: pk.tier, team: pk.team, stage: effStage(pk.team), stageLabel: STAGE_LABEL[effStage(pk.team)],
-      dead: effStage(pk.team) === "out", pct: barPct(pk.team), tierLabel: TIERS[pk.tier].label, tierEmoji: TIERS[pk.tier].emoji,
+      dead: effStage(pk.team) === "out", recentOut: recentlyEliminated(pk.team),
+      pct: barPct(pk.team), tierLabel: TIERS[pk.tier].label, tierEmoji: TIERS[pk.tier].emoji,
     }));
     return { name: p.name, picks, alive: picks.filter((x) => !x.dead).length, best: STAGE_LABEL[bestStage(p)] };
   }
@@ -185,5 +207,5 @@ const Core = (() => {
 
   const names = () => PLAYERS.map((p) => p.name);
 
-  return { OWNER, TIER, PINDEX, effStage, owner, charFor, pot, standings, player, quests, graveyard, barPct, names, TIERS, load };
+  return { OWNER, TIER, PINDEX, effStage, owner, charFor, pot, standings, player, quests, graveyard, barPct, names, TIERS, load, recentlyEliminated };
 })();
