@@ -10,6 +10,7 @@ const Core = (() => {
   // back to the manual TEAM_META.stage only when the feed has no games for a team.
   let STAGES = {};
   let ELIM = {}; // team -> ms timestamp of the game that eliminated them
+  let ADVANCE = {}; // team -> ms timestamp of a recent knockout win
   const effStage = (t) => {
     if (CONFIG.demoStandings && DEMO_STAGES[t]) return DEMO_STAGES[t];
     if (STAGES[t]) return STAGES[t];
@@ -80,17 +81,19 @@ const Core = (() => {
         }
       });
     });
-    const stages = {}, elim = {};
+    const stages = {}, elim = {}, adv = {};
     Object.entries(agg).forEach(([t, g]) => {
-      if (g.future) { stages[t] = g.future.stage; return; }       // named in an upcoming fixture
       const L = g.last;
+      // Recently won a knockout (incl. the final) = advanced — drives "glory" UI.
+      if (L && L.won && STAGE_ORDER[L.stage] >= STAGE_ORDER.r32) adv[t] = L.ms;
+      if (g.future) { stages[t] = g.future.stage; return; }       // named in an upcoming fixture
       if (!L) { stages[t] = "group"; return; }
       if (L.stage === "group") { stages[t] = "out"; elim[t] = L.ms; return; } // didn't advance from group
       if (L.oppWon) { stages[t] = "out"; elim[t] = L.ms; return; }            // lost a knockout
       if (L.won) { stages[t] = L.stage === "final" ? "champion" : (NEXT_STAGE[L.stage] || "champion"); return; }
       stages[t] = L.stage; // undecided knockout (pending shootout / in progress)
     });
-    ELIM = elim;
+    ELIM = elim; ADVANCE = adv;
     return stages;
   }
   // Did this team's elimination happen within `within` ms (default 24h)?
@@ -100,6 +103,24 @@ const Core = (() => {
     const dt = Date.now() - ms;
     return dt >= 0 && dt < (within || 24 * 60 * 60 * 1000);
   };
+  // Did this team win a knockout (advance) within `within` ms (default 24h)?
+  const recentlyAdvanced = (team, within) => {
+    const ms = ADVANCE[team];
+    if (!ms) return false;
+    const dt = Date.now() - ms;
+    return dt >= 0 && dt < (within || 24 * 60 * 60 * 1000);
+  };
+  // Recent ins/outs across owned teams (newest first) — powers the "latest" card.
+  function movements(within) {
+    const out = [], adv = [];
+    Object.keys(TEAM_META).forEach((t) => {
+      if (!OWNER[t]) return;
+      if (recentlyEliminated(t, within)) out.push({ team: t, owner: OWNER[t], at: ELIM[t] });
+      else if (recentlyAdvanced(t, within)) adv.push({ team: t, owner: OWNER[t], at: ADVANCE[t], stageLabel: STAGE_LABEL[effStage(t)] });
+    });
+    out.sort((a, b) => b.at - a.at); adv.sort((a, b) => b.at - a.at);
+    return { out, adv };
+  }
 
   // Fetch the live feed (cached) and recompute the results table + stages.
   async function load(force) {
@@ -165,7 +186,8 @@ const Core = (() => {
       const winRaw = p.picks.reduce((s, pk) => s + (prob[pk.team] || 0), 0);
       const winPct = Math.round(winRaw * 100);
       const recentOut = p.picks.filter((pk) => recentlyEliminated(pk.team)).map((pk) => pk.team);
-      return { name: p.name, picks: p.picks.slice().sort((a, b) => a.tier - b.tier), best, bestLabel: STAGE_LABEL[best], rank: STAGE_ORDER[best], alive, out: alive === 0, points, gd, played, winPct, winRaw, recentOut };
+      const recentWin = p.picks.filter((pk) => recentlyAdvanced(pk.team)).map((pk) => pk.team);
+      return { name: p.name, picks: p.picks.slice().sort((a, b) => a.tier - b.tier), best, bestLabel: STAGE_LABEL[best], rank: STAGE_ORDER[best], alive, out: alive === 0, points, gd, played, winPct, winRaw, recentOut, recentWin };
     }).sort((a, b) => b.points - a.points || b.gd - a.gd || b.winRaw - a.winRaw || a.name.localeCompare(b.name));
   }
 
@@ -173,7 +195,7 @@ const Core = (() => {
     const p = PLAYERS.find((x) => x.name === name) || PLAYERS[0];
     const picks = p.picks.slice().sort((a, b) => a.tier - b.tier).map((pk) => ({
       tier: pk.tier, team: pk.team, stage: effStage(pk.team), stageLabel: STAGE_LABEL[effStage(pk.team)],
-      dead: effStage(pk.team) === "out", recentOut: recentlyEliminated(pk.team),
+      dead: effStage(pk.team) === "out", recentOut: recentlyEliminated(pk.team), recentWin: recentlyAdvanced(pk.team),
       pct: barPct(pk.team), tierLabel: TIERS[pk.tier].label, tierEmoji: TIERS[pk.tier].emoji,
     }));
     return { name: p.name, picks, alive: picks.filter((x) => !x.dead).length, best: STAGE_LABEL[bestStage(p)] };
@@ -207,5 +229,5 @@ const Core = (() => {
 
   const names = () => PLAYERS.map((p) => p.name);
 
-  return { OWNER, TIER, PINDEX, effStage, owner, charFor, pot, standings, player, quests, graveyard, barPct, names, TIERS, load, recentlyEliminated };
+  return { OWNER, TIER, PINDEX, effStage, owner, charFor, pot, standings, player, quests, graveyard, barPct, names, TIERS, load, recentlyEliminated, recentlyAdvanced, movements };
 })();
