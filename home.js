@@ -3,24 +3,43 @@
 (() => {
   const $ = (s) => document.querySelector(s);
 
-  // Light emoji rain over an element — used to mourn a freshly eliminated team.
-  function rainOn(el, emojis) {
-    if (!el || el.querySelector(":scope > .rainfx")) return;
+  // Rain of emojis + nation flags over an element (glory or mourning).
+  // `items` is a list of { emoji } or { team } drops.
+  function rainOn(el, items) {
+    if (!el || !items.length || el.querySelector(":scope > .rainfx")) return;
     const h = el.offsetHeight || 60, w = el.offsetWidth || 200;
     const n = Math.max(6, Math.min(14, Math.round(w / 60)));
     let drops = "";
     for (let i = 0; i < n; i++) {
-      const em = emojis[i % emojis.length];
+      const it = items[i % items.length];
       const left = ((i + ((i * 37) % 10) / 10) * (100 / n)).toFixed(1);
-      const size = 12 + ((i * 13) % 8);
       const dur = (2.2 + ((i * 17) % 16) / 10).toFixed(2);
       const delay = (-((i * 23) % 30) / 10).toFixed(2);
-      drops += `<span class="drop" style="left:${left}%;font-size:${size}px;--fall:${h + 26}px;animation-duration:${dur}s;animation-delay:${delay}s">${em}</span>`;
+      const base = `left:${left}%;--fall:${h + 26}px;animation-duration:${dur}s;animation-delay:${delay}s`;
+      if (it.team) drops += `<span class="drop flagdrop" style="${base};width:22px;height:15px">${renderFlag(it.team, { pixel: false })}</span>`;
+      else drops += `<span class="drop" style="${base};font-size:${13 + ((i * 13) % 8)}px">${it.emoji}</span>`;
     }
     const layer = document.createElement("div");
     layer.className = "rainfx";
     layer.innerHTML = drops;
     el.appendChild(layer);
+  }
+  // Build a rain item list from emoji strings + team flags.
+  const rainItems = (emojis, teams) => [...emojis.map((e) => ({ emoji: e })), ...(teams || []).map((t) => ({ team: t }))];
+
+  // Animate a win% cell when the number changes after new results.
+  const prevWin = {};
+  function animatePct(el, from, to) {
+    el.classList.remove("up", "down"); void el.offsetWidth;
+    el.classList.add(to > from ? "up" : "down");
+    const start = performance.now(), dur = 700;
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(from + (to - from) * t) + "%";
+      if (t < 1) requestAnimationFrame(tick); else el.textContent = to + "%";
+    };
+    requestAnimationFrame(tick);
+    setTimeout(() => el.classList.remove("up", "down"), 1100);
   }
 
   // ---- Local "cheer" (confetti + a personal tally in localStorage) ----------
@@ -72,6 +91,10 @@
     const portrait = (window.MANAGERS || {})[name] || renderFlag(t1, { pixel: false });
     return `<span class="favatar" style="--av:${size || 44}px;--ring:${flagPrimary(t1)}">${portrait}</span>`;
   };
+  // Small owner portrait for fixtures — ringed in the owner's Tier-1 nation colour.
+  const _ot1 = {};
+  const ownerT1 = (name) => (_ot1[name] || (_ot1[name] = tier1(Core.player(name).picks)));
+  const ownerAvatar = (name, size) => name ? `<span class="oav" title="${name}">${avatar(name, ownerT1(name), size || 22)}</span>` : "";
 
   // ---- Hero ----------------------------------------------------------------
   function hero() {
@@ -82,6 +105,10 @@
     const lead = Core.standings()[0];
     if (lead) {
       const t1 = tier1(lead.picks);
+      const alivePicks = Core.player(lead.name).picks.filter((pk) => !pk.dead);
+      const teamsHtml = alivePicks.length
+        ? alivePicks.map((pk) => `<span class="lt"><span class="lt-f">${renderFlag(pk.team, { pixel: false })}</span>${pk.team}</span>`).join("")
+        : `<span class="lt-none">No teams left in the running.</span>`;
       $("#leadcard").innerHTML = `
         <span class="lead-badge">● Top of the table</span>
         <div class="lead-top">
@@ -91,7 +118,7 @@
             <div class="lead-role">${lead.points} pts · ${lead.alive}/4 teams alive</div>
           </div>
         </div>
-        <div class="lead-quote">Out in front on points, holding the strongest hand of nations still alive in the draw.</div>
+        <div class="lead-teams"><div class="lt-h">Still in the running</div><div class="lt-list">${teamsHtml}</div></div>
         <div class="lead-foot"><span class="lab">Odds to own the champion</span><span class="big">${lead.winPct}%</span></div>`;
     }
     renderLatest();
@@ -129,11 +156,12 @@
       const tag = i === 0 ? `<span class="b-tag">Top</span>` : "";
       const glory = r.recentWin && r.recentWin.length, mourn = r.recentOut && r.recentOut.length;
       const mood = glory && mourn ? " swing" : glory ? " glory" : mourn ? " mourning" : "";
+      const moveChip = (teams, type) => teams && teams.length ? `<span class="b-move ${type}"><span class="cf">${renderFlag(teams[0], { pixel: false })}</span>${type === "in" ? "🎉" : "🪦"}${teams.length > 1 ? " +" + (teams.length - 1) : ""}</span>` : "";
       return `<div class="brow ${i === 0 ? "lead" : ""} ${r.out ? "out" : ""}${mood}" data-player="${r.name}">
         <div class="b-rk">${i + 1}</div>
         <div>${avatar(r.name, t1, 40)}</div>
         <div>
-          <div class="b-nm">${r.name}${tag}</div>
+          <div class="b-nm">${r.name}${tag}${moveChip(r.recentWin, "in")}${moveChip(r.recentOut, "out")}</div>
           <div class="b-sub">${r.out ? "All teams knocked out" : "Furthest: " + r.bestLabel} · ${r.alive}/4 alive</div>
         </div>
         <div class="b-win">${r.winPct}%</div>
@@ -144,9 +172,13 @@
     rows.forEach((r) => {
       const el = $(`#board .brow[data-player="${r.name}"]`);
       const glory = r.recentWin && r.recentWin.length, mourn = r.recentOut && r.recentOut.length;
-      if (glory && mourn) rainOn(el, ["🎉", "⚽", "🪦", "😢"]);
-      else if (glory) rainOn(el, ["🎉", "🏆", "⚽"]);
-      else if (mourn) rainOn(el, ["🪦", "😢", "⚽"]);
+      if (glory && mourn) rainOn(el, rainItems(["🎉", "🪦"], [...r.recentWin, ...r.recentOut]));
+      else if (glory) rainOn(el, rainItems(["🎉", "🏆", "⚽"], r.recentWin));
+      else if (mourn) rainOn(el, rainItems(["🪦", "😢", "⚽"], r.recentOut));
+      // Animate the win% when it has moved since the last results.
+      const win = $(`#board .brow[data-player="${r.name}"] .b-win`);
+      if (win && prevWin[r.name] != null && prevWin[r.name] !== r.winPct) animatePct(win, prevWin[r.name], r.winPct);
+      prevWin[r.name] = r.winPct;
     });
   }
 
@@ -167,10 +199,17 @@
     const row = (f) => {
       const mid = f.played ? `<span class="mscore">${f.homeScore}–${f.awayScore}</span>` : `<span class="mvs">VS</span>`;
       const date = (() => { try { return new Date(f.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }); } catch (e) { return f.date; } })();
-      return `<div class="match ${f.rivalry ? "rivalry" : ""}">
-        <div class="m-side">${flagCell(f.home, f.homeTBD)}${nameCell(f.home, f.homeTBD)}</div>
-        <div class="m-mid">${mid}<span class="m-round">${f.round || ""}</span><span class="m-when">${f.played ? "FT · " + date : date + (f.time ? " · " + f.time : "")}</span>${f.rivalry ? `<span class="m-riv">⚔ ${f.oh} v ${f.oa}</span>` : ""}</div>
-        <div class="m-side r">${nameCell(f.away, f.awayTBD)}${flagCell(f.away, f.awayTBD)}</div>
+      const winSide = !f.played ? null : f.homeScore > f.awayScore ? "home" : f.awayScore > f.homeScore ? "away" : f.homeWin ? "home" : f.awayWin ? "away" : null;
+      const cls = (which) => winSide ? (winSide === which ? " win" : " lose") : "";
+      const ownCls = (which) => winSide === which ? " win" : "";
+      return `<div class="match ${f.played ? "played" : "upcoming"}">
+        <div class="m-side${cls("home")}">${flagCell(f.home, f.homeTBD)}${nameCell(f.home, f.homeTBD)}</div>
+        <div class="m-mid">
+          <div class="m-vs">${f.oh ? `<span class="m-own${ownCls("home")}">${ownerAvatar(f.oh, 20)}</span>` : ""}${mid}${f.oa ? `<span class="m-own${ownCls("away")}">${ownerAvatar(f.oa, 20)}</span>` : ""}</div>
+          <span class="m-round">${f.round || ""}</span>
+          <span class="m-when">${f.played ? "FT · " + date : date + (f.time ? " · " + f.time : "")}</span>
+        </div>
+        <div class="m-side r${cls("away")}">${flagCell(f.away, f.awayTBD)}${nameCell(f.away, f.awayTBD)}</div>
       </div>`;
     };
     const up = res.upcoming || [], done = res.recent || [];
@@ -208,8 +247,8 @@
     // Rain on the specific team(s) that advanced or were eliminated in the last 24h.
     pl.picks.forEach((pk) => {
       const el = $(`#modal-body .mteam[data-team="${pk.team}"]`);
-      if (pk.recentWin) rainOn(el, ["🎉", "🏆", "⚽"]);
-      else if (pk.recentOut) rainOn(el, ["🪦", "😢", "⚽"]);
+      if (pk.recentWin) rainOn(el, rainItems(["🎉", "🏆", "⚽"], [pk.team]));
+      else if (pk.recentOut) rainOn(el, rainItems(["🪦", "😢", "⚽"], [pk.team]));
     });
   }
   const closeModal = () => { $("#modal").hidden = true; };
@@ -223,7 +262,7 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
 
   // Upgrade flag fallbacks to illustrated portraits once managers.js is ready.
-  window.onManagersReady = () => { hero(); board(); };
+  window.onManagersReady = () => { hero(); board(); fixtures(); };
 
   // ---- Boot + 30-min live refresh ------------------------------------------
   hero();

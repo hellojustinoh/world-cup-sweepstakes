@@ -77,6 +77,13 @@ section[id] { scroll-margin-top: 84px; }
 .lead-role { font-size: 13px; color: var(--muted); margin-top: 3px; }
 .lead-quote { font-size: 15px; color: var(--body); line-height: 1.5; }
 .lead-quote b { color: var(--ink); }
+.lead-teams { margin-top: 16px; }
+.lt-h { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+.lt-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.lt { display: inline-flex; align-items: center; gap: 6px; font-family: "Plus Jakarta Sans", sans-serif; font-size: 12.5px; font-weight: 700; color: var(--ink); background: #f5f1e8; border: 1px solid var(--line); padding: 4px 10px 4px 5px; border-radius: 999px; }
+.lt-f { width: 17px; height: 12px; border-radius: 2px; overflow: hidden; flex: none; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+.lt-f svg, .lt-f img { width: 100% !important; height: 100% !important; display: block; }
+.lt-none { font-size: 13px; color: var(--muted); }
 .lead-foot { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line2); display: flex; justify-content: space-between; align-items: baseline; }
 .lead-foot .big { font-family: "Plus Jakarta Sans"; font-weight: 800; font-size: 26px; color: var(--blurple); }
 .lead-foot .lab { font-size: 12px; color: var(--muted); font-weight: 600; }
@@ -107,10 +114,22 @@ section[id] { scroll-margin-top: 84px; }
 .ui-s { font-size: 12px; color: var(--muted); font-weight: 600; }
 .ui-em { font-size: 16px; }
 
-/* glory / swing row + team tints (mourning lives with the rain rules) */
-.brow.glory { background: linear-gradient(90deg, #eef7ef, #fff); }
-.brow.swing { background: linear-gradient(90deg, #f2f0fb, #fff); }
-.mteam.glory { opacity: 1; border-color: #cfe9d6; background: linear-gradient(90deg, #edf7ef, #fff); }
+/* glory / mourning / swing tints (defined last so they win over the row hover) */
+.brow.glory { background: linear-gradient(90deg, #d6f0df, #f4fbf6); }
+.brow.mourning { background: linear-gradient(90deg, #fbd7d7, #fff6f6); }
+.brow.swing { background: linear-gradient(90deg, #e4e1fa, #f7f6ff); }
+.mteam.glory { opacity: 1; border-color: #bfe6cc; background: linear-gradient(90deg, #dcf2e4, #fff); }
+
+/* status chip on a player's row (flag + mood emoji) */
+.b-move { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; padding: 2px 8px 2px 5px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+.b-move .cf { width: 16px; height: 11px; border-radius: 2px; overflow: hidden; box-shadow: 0 0 0 1px rgba(0,0,0,.08); flex: none; }
+.b-move .cf svg, .b-move .cf img { width: 100% !important; height: 100% !important; display: block; }
+.b-move.in { background: #daf1e2; color: #157a45; }
+.b-move.out { background: #fbdcdc; color: #b5322f; }
+
+/* flag drops within the emoji rain */
+.drop.flagdrop { overflow: hidden; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
+.drop.flagdrop svg, .drop.flagdrop img { width: 100% !important; height: 100% !important; display: block; }
 
 /* cheer button */
 .mteam-tx { flex: 1; min-width: 0; }
@@ -157,7 +176,6 @@ section[id] { scroll-margin-top: 84px; }
 .h-info:hover .tip { opacity: 1; }
 
 .brow { position: relative; border-top: 1px solid var(--line2); cursor: pointer; border-radius: 14px; transition: background .12s ease, transform .12s ease; }
-.brow.mourning { background: linear-gradient(90deg, #f6ecec, #fff); }
 
 /* Emoji rain (mourning a freshly eliminated team) */
 .rainfx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; border-radius: inherit; z-index: 3; }
@@ -178,7 +196,10 @@ section[id] { scroll-margin-top: 84px; }
 .b-nm { font-family: "Plus Jakarta Sans"; font-weight: 700; font-size: 16px; color: var(--ink); display: flex; align-items: center; gap: 9px; }
 .b-tag { font-size: 10px; font-weight: 800; letter-spacing: .05em; color: var(--green); background: var(--green-soft); padding: 3px 7px; border-radius: 6px; text-transform: uppercase; }
 .b-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; font-weight: 500; }
-.b-win { background: var(--blurple-soft); color: var(--blurple); font-weight: 700; font-size: 14px; padding: 6px 13px; border-radius: 999px; min-width: 58px; text-align: center; }
+.b-win { background: var(--blurple-soft); color: var(--blurple); font-weight: 700; font-size: 14px; padding: 6px 13px; border-radius: 999px; min-width: 58px; text-align: center; transition: background .5s ease, color .5s ease; }
+.b-win.up { background: #d6f0df; color: #157a45; animation: winPulse .7s ease; }
+.b-win.down { background: #fbd7d7; color: #b5322f; animation: winPulse .7s ease; }
+@keyframes winPulse { 0% { transform: scale(1); } 40% { transform: scale(1.2); } 100% { transform: scale(1); } }
 .b-pts { font-family: "Plus Jakarta Sans"; font-weight: 800; font-size: 17px; color: var(--ink); min-width: 54px; text-align: right; }
 .b-pts small { font-weight: 600; font-size: 11px; color: var(--muted); margin-left: 3px; }
 
@@ -193,20 +214,27 @@ section[id] { scroll-margin-top: 84px; }
 .fix-sub { font-family: "Plus Jakarta Sans"; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 22px 4px 12px; }
 .fixgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .match { background: var(--paper); border: 1px solid var(--line2); border-radius: 16px; padding: 14px 16px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; box-shadow: 0 1px 2px rgba(20,23,28,.03); }
-.match.rivalry { border-color: #dcd2ff; background: linear-gradient(180deg, #fbfaff, #fff); }
-.m-side { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.match.played { background: linear-gradient(160deg, #f4efe6, #f0eadf); border-color: #e6dcc9; box-shadow: none; }
+.m-side { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .m-side.r { flex-direction: row-reverse; text-align: right; }
+.oav { flex: none; display: inline-flex; }
+.oav .favatar { box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 3px var(--ring); }
+.m-side.win .m-tm { font-weight: 800; color: var(--ink); }
+.m-side.win::after { content: "🏆"; font-size: 12px; margin-left: 3px; }
+.m-side.lose { opacity: .45; }
+.m-vs { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.m-own { display: inline-flex; flex: none; }
+.m-own.win .favatar { box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 3px #f0b419; }
 .m-flag { width: 30px; height: 21px; border-radius: 5px; overflow: hidden; flex: none; box-shadow: 0 0 0 1px var(--line2); }
 .m-flag svg { width: 100% !important; height: 100% !important; display: block; }
 .m-flag.tbd { display: grid; place-items: center; background: #eef0f3; color: #9aa0aa; font-weight: 800; font-size: 12px; }
 .m-tm { font-family: "Plus Jakarta Sans"; font-weight: 700; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .m-tm.tbd { color: #9aa0aa; }
-.m-mid { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; }
+.m-mid { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 104px; }
 .mscore { font-family: "Plus Jakarta Sans"; font-weight: 800; font-size: 18px; color: var(--ink); }
 .mvs { font-weight: 700; font-size: 12px; color: var(--muted); }
 .m-round { font-size: 9.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
 .m-when { font-size: 11px; color: var(--muted); font-weight: 600; }
-.m-riv { font-size: 10px; font-weight: 700; color: var(--blurple); background: var(--blurple-soft); padding: 2px 7px; border-radius: 999px; margin-top: 1px; }
 
 /* ---- Footer --------------------------------------------------------------- */
 .foot { margin-top: 70px; border-top: 1px solid var(--line); padding: 26px 0; }
@@ -229,7 +257,7 @@ section[id] { scroll-margin-top: 84px; }
 .mteams { display: flex; flex-direction: column; gap: 10px; }
 .mteam { position: relative; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--line2); border-radius: 14px; min-width: 0; }
 .mteam.dead { opacity: .5; }
-.mteam.mourning { opacity: 1; border-color: #e6cccc; background: linear-gradient(90deg, #f7eded, #fff); }
+.mteam.mourning { opacity: 1; border-color: #f0c4c4; background: linear-gradient(90deg, #fbdcdc, #fff); }
 .mteam .m-flag { width: 38px; height: 27px; }
 .mteam > div { min-width: 0; }
 .mt-t { font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
