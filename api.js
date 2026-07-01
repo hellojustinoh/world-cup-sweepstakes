@@ -138,5 +138,38 @@ const SweepsAPI = (() => {
     return { ...data, fetchedAt: Date.now() };
   }
 
-  return { getSchedule, resolveTeam, bust };
+  // ---- Live championship odds from Polymarket -------------------------------
+  // The "World Cup Winner" market (event 30615): one binary market per nation,
+  // whose "Yes" price is the market-implied probability that nation wins the cup.
+  const ODDS_URL = "https://gamma-api.polymarket.com/events/30615";
+  const ODDS_KEY = "sweeps.odds.v1";
+  const ODDS_TTL = 20 * 60 * 1000;
+  async function fetchOdds() {
+    const ev = await fetchJson(ODDS_URL);
+    const odds = {};
+    (ev.markets || []).forEach((m) => {
+      const team = resolveTeam(m.groupItemTitle || "");
+      if (!team) return;
+      let yes = null;
+      try { yes = Number(JSON.parse(m.outcomePrices)[0]); } catch (e) { yes = m.lastTradePrice != null ? Number(m.lastTradePrice) : null; }
+      if (yes != null && !isNaN(yes)) odds[team] = yes;
+    });
+    return odds;
+  }
+  // Returns { source: "polymarket"|"none", odds: {team: prob}, fetchedAt }.
+  async function getMarketOdds(force) {
+    if (!force) {
+      try { const c = JSON.parse(localStorage.getItem(ODDS_KEY)); if (c && Date.now() - c.t < ODDS_TTL) return { source: "polymarket", odds: c.data, fetchedAt: c.t }; } catch (e) {}
+    }
+    try {
+      const odds = await fetchOdds();
+      if (Object.keys(odds).length) {
+        try { localStorage.setItem(ODDS_KEY, JSON.stringify({ t: Date.now(), data: odds })); } catch (e) {}
+        return { source: "polymarket", odds, fetchedAt: Date.now() };
+      }
+    } catch (e) {}
+    return { source: "none", odds: {}, fetchedAt: Date.now() };
+  }
+
+  return { getSchedule, getMarketOdds, resolveTeam, bust };
 })();

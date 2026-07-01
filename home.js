@@ -29,6 +29,13 @@
 
   // Animate a win% cell when the number changes after new results.
   const prevWin = {};
+  // Vertically on screen — rows span the full width, so only the fold matters.
+  const inViewport = (el) => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    return r.bottom > 0 && r.top < vh;
+  };
   function animatePct(el, from, to) {
     el.classList.remove("up", "down"); void el.offsetWidth;
     el.classList.add(to > from ? "up" : "down");
@@ -145,9 +152,13 @@
 
   // ---- Standings -----------------------------------------------------------
   function board() {
+    const market = Core.oddsSource && Core.oddsSource() === "polymarket";
+    const winTip = market
+      ? `Live <b>prediction-market</b> odds (Polymarket) that this player owns the eventual <b>champion</b>, summed across their four teams and updated as the market moves. Eliminated teams drop to zero.`
+      : `Modelled chance this player owns the eventual <b>champion</b>, from each team's strength and how far it has advanced.`;
     const head = `<div class="bhead">
       <div class="h-r">#</div><div></div><div>Player</div>
-      <div class="h-info">Win prob<span class="qmark">?</span><span class="tip">Modelled chance this player owns the eventual <b>champion</b>, from each team's strength rating, how far it has advanced, and live form. Updates with results.</span></div>
+      <div class="h-info">Win prob<span class="qmark">?</span><span class="tip">${winTip}</span></div>
       <div class="h-r"><span class="h-info">Pts<span class="qmark">?</span><span class="tip">Football points from real results: <b>win 3</b>, <b>draw 1</b>, <b>loss 0</b>, counted across every game. A player's total is the sum of all four of their teams.</span></span></div>
     </div>`;
     const rows = Core.standings();
@@ -175,9 +186,9 @@
       if (glory && mourn) rainOn(el, rainItems(["🎉", "🪦"], [...r.recentWin, ...r.recentOut]));
       else if (glory) rainOn(el, rainItems(["🎉", "🏆", "⚽"], r.recentWin));
       else if (mourn) rainOn(el, rainItems(["🪦", "😢", "⚽"], r.recentOut));
-      // Animate the win% when it has moved since the last results.
+      // Animate the win% when it moves — but only if the row is on screen.
       const win = $(`#board .brow[data-player="${r.name}"] .b-win`);
-      if (win && prevWin[r.name] != null && prevWin[r.name] !== r.winPct) animatePct(win, prevWin[r.name], r.winPct);
+      if (win && prevWin[r.name] != null && prevWin[r.name] !== r.winPct && inViewport(win)) animatePct(win, prevWin[r.name], r.winPct);
       prevWin[r.name] = r.winPct;
     });
   }

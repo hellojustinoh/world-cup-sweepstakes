@@ -34,17 +34,23 @@ Shared modules, loaded in order before each page's own script:
 - **`data.js`** — config + roster. `CONFIG` holds the buy-in, pot split, and the
   `useLiveApi` flag. `PLAYERS` is the draft. `TEAM_META` carries per-team aliases
   and knockout `stage`. `POWER` is each nation's pre-tournament strength rating.
-- **`flags.js`** — SVG flag renderer for every drafted nation.
-- **`api.js`** — fetches the ESPN World Cup scoreboard, normalises events, and
-  caches to `localStorage` for 30 minutes (manual refresh bypasses it).
-- **`core.js`** — turns results into the points table, computes champion odds,
-  and exposes `standings()`, `quests()` (fixtures), `pot()`, and `player()`.
+- **`flags.js`** — real flag icons (flag-icons via jsDelivr) for every nation.
+- **`api.js`** — fetches the ESPN World Cup scoreboard (results, rounds, winners)
+  and the Polymarket "World Cup Winner" market (implied championship odds per
+  nation). Both cache to `localStorage` (15–20 min; manual refresh bypasses it).
+- **`core.js`** — derives each team's stage and elimination from the results,
+  builds the points table, and computes each player's win probability from the
+  Polymarket odds (falling back to a strength model if the market is
+  unavailable). Standings are ranked by win probability. Exposes `standings()`,
+  `quests()`, `pot()`, `player()`, and `movements()`.
+- **`managers.js`** — DiceBear "personas" portraits per player, keyed to the
+  roster's gender/ethnicity.
 
 Page-specific files: `home.css` and `home.js`.
 
 ## Updating through the tournament
 
-Group results flow in automatically from the live feed. Knockout progression and
-the final champion / runner-up are set manually by editing each team's `stage`
-in `TEAM_META` (`data.js`): `group` → `r32` → `r16` → `qf` → `sf` → `final` →
-`runnerUp` / `champion`, or `out` when eliminated.
+It runs itself. Group results, knockout progression, eliminations, and the final
+champion / runner-up are all derived automatically from the live ESPN feed
+(`season.slug` for the round, the winner flag for advancement). Win probability
+tracks the Polymarket market live. No manual edits needed during the tournament.

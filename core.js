@@ -11,6 +11,8 @@ const Core = (() => {
   let STAGES = {};
   let ELIM = {}; // team -> ms timestamp of the game that eliminated them
   let ADVANCE = {}; // team -> ms timestamp of a recent knockout win
+  let MARKET = {}; // team -> Polymarket implied championship probability
+  let ODDS_SOURCE = "none"; // "polymarket" | "none"
   const effStage = (t) => {
     if (CONFIG.demoStandings && DEMO_STAGES[t]) return DEMO_STAGES[t];
     if (STAGES[t]) return STAGES[t];
@@ -122,10 +124,19 @@ const Core = (() => {
     return { out, adv };
   }
 
-  // Fetch the live feed (cached) and recompute the results table + stages.
+  // Fetch the live feed + market odds (in parallel, cached) and recompute.
   async function load(force) {
     let live = { source: "none", fixtures: [] };
-    try { if (typeof SweepsAPI !== "undefined") live = await SweepsAPI.getSchedule(force); } catch (e) {}
+    try {
+      if (typeof SweepsAPI !== "undefined") {
+        const [sched, odds] = await Promise.all([
+          SweepsAPI.getSchedule(force).catch(() => ({ source: "none", fixtures: [] })),
+          SweepsAPI.getMarketOdds ? SweepsAPI.getMarketOdds(force).catch(() => null) : Promise.resolve(null),
+        ]);
+        live = sched || live;
+        if (odds && odds.source === "polymarket" && Object.keys(odds.odds).length) { MARKET = odds.odds; ODDS_SOURCE = "polymarket"; }
+      }
+    } catch (e) {}
     STATS = computeStats(live.fixtures || []);
     STAGES = computeStages(live.fixtures || []);
     return live;
@@ -160,16 +171,21 @@ const Core = (() => {
   function champProbMap() {
     const teams = Object.keys(TEAM_META);
     const w = {}; let total = 0;
+    const useMarket = ODDS_SOURCE === "polymarket" && Object.keys(MARKET).length;
     teams.forEach((t) => {
-      const st = effStage(t);
-      const power = (typeof POWER !== "undefined" && POWER[t]) || 40;
-      // Cubic: a 90-rated side is FAR likelier to win the cup than a 60-rated
-      // one, even when both ease through the group. Bracket position amplifies,
-      // real form nudges.
-      const base = Math.pow(power / 100, 3) * 100;
-      const ww = st === "out" ? 0 : base * (STAGE_MULT[st] || 1) + teamPts(t) * 3;
+      const out = effStage(t) === "out";
+      let ww;
+      if (useMarket) {
+        // Live prediction-market implied P(champion); eliminated teams -> 0.
+        ww = out ? 0 : (MARKET[t] || 0);
+      } else {
+        // Fallback strength model: cubic in power, amplified by bracket position.
+        const power = (typeof POWER !== "undefined" && POWER[t]) || 40;
+        ww = out ? 0 : Math.pow(power / 100, 3) * 100 * (STAGE_MULT[effStage(t)] || 1) + teamPts(t) * 3;
+      }
       w[t] = ww; total += ww;
     });
+    // Normalise across all owned teams so player win% sum to ~100%.
     const map = {};
     teams.forEach((t) => { map[t] = total > 0 ? w[t] / total : 0; });
     return map;
@@ -188,7 +204,7 @@ const Core = (() => {
       const recentOut = p.picks.filter((pk) => recentlyEliminated(pk.team)).map((pk) => pk.team);
       const recentWin = p.picks.filter((pk) => recentlyAdvanced(pk.team)).map((pk) => pk.team);
       return { name: p.name, picks: p.picks.slice().sort((a, b) => a.tier - b.tier), best, bestLabel: STAGE_LABEL[best], rank: STAGE_ORDER[best], alive, out: alive === 0, points, gd, played, winPct, winRaw, recentOut, recentWin };
-    }).sort((a, b) => b.points - a.points || b.gd - a.gd || b.winRaw - a.winRaw || a.name.localeCompare(b.name));
+    }).sort((a, b) => b.winRaw - a.winRaw || b.points - a.points || b.gd - a.gd || a.name.localeCompare(b.name));
   }
 
   function player(name) {
@@ -229,5 +245,5 @@ const Core = (() => {
 
   const names = () => PLAYERS.map((p) => p.name);
 
-  return { OWNER, TIER, PINDEX, effStage, owner, charFor, pot, standings, player, quests, graveyard, barPct, names, TIERS, load, recentlyEliminated, recentlyAdvanced, movements };
+  return { OWNER, TIER, PINDEX, effStage, owner, charFor, pot, standings, player, quests, graveyard, barPct, names, TIERS, load, recentlyEliminated, recentlyAdvanced, movements, oddsSource: () => ODDS_SOURCE };
 })();
