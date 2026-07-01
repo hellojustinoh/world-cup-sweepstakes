@@ -27,6 +27,17 @@
   // Build a rain item list from emoji strings + team flags.
   const rainItems = (emojis, teams) => [...emojis.map((e) => ({ emoji: e })), ...(teams || []).map((t) => ({ team: t }))];
 
+  // Format a win probability: whole % at 1%+, else one decimal (so tiny but
+  // non-zero odds don't collapse to "0%").
+  const fmtWin = (winRaw) => {
+    const p = (winRaw || 0) * 100;
+    if (p >= 1) return Math.round(p) + "%";
+    if (p >= 0.1) return p.toFixed(1) + "%";
+    if (p >= 0.01) return p.toFixed(2) + "%";
+    if (p > 0) return "<0.01%";
+    return "0%";
+  };
+
   // Animate a win% cell when the number changes after new results.
   const prevWin = {};
   // Vertically on screen — rows span the full width, so only the fold matters.
@@ -36,14 +47,14 @@
     const vh = window.innerHeight || document.documentElement.clientHeight;
     return r.bottom > 0 && r.top < vh;
   };
-  function animatePct(el, from, to) {
+  function animatePct(el, from, to, finalText) {
     el.classList.remove("up", "down"); void el.offsetWidth;
     el.classList.add(to > from ? "up" : "down");
     const start = performance.now(), dur = 700;
     const tick = (now) => {
       const t = Math.min(1, (now - start) / dur);
       el.textContent = Math.round(from + (to - from) * t) + "%";
-      if (t < 1) requestAnimationFrame(tick); else el.textContent = to + "%";
+      if (t < 1) requestAnimationFrame(tick); else el.textContent = finalText || (to + "%");
     };
     requestAnimationFrame(tick);
     setTimeout(() => el.classList.remove("up", "down"), 1100);
@@ -126,7 +137,7 @@
           </div>
         </div>
         <div class="lead-teams"><div class="lt-h">Still in the running</div><div class="lt-list">${teamsHtml}</div></div>
-        <div class="lead-foot"><span class="lab">Odds to own the champion</span><span class="big">${lead.winPct}%</span></div>`;
+        <div class="lead-foot"><span class="lab">Odds to own the champion</span><span class="big">${fmtWin(lead.winRaw)}</span></div>`;
     }
     renderLatest();
   }
@@ -175,7 +186,7 @@
           <div class="b-nm">${r.name}${tag}${moveChip(r.recentWin, "in")}${moveChip(r.recentOut, "out")}</div>
           <div class="b-sub">${r.out ? "All teams knocked out" : "Furthest: " + r.bestLabel} · ${r.alive}/4 alive</div>
         </div>
-        <div class="b-win">${r.winPct}%</div>
+        <div class="b-win">${fmtWin(r.winRaw)}</div>
         <div class="b-pts">${r.points}<small>pts</small></div>
       </div>`;
     }).join("");
@@ -188,7 +199,7 @@
       else if (mourn) rainOn(el, rainItems(["🪦", "😢", "⚽"], r.recentOut));
       // Animate the win% when it moves — but only if the row is on screen.
       const win = $(`#board .brow[data-player="${r.name}"] .b-win`);
-      if (win && prevWin[r.name] != null && prevWin[r.name] !== r.winPct && inViewport(win)) animatePct(win, prevWin[r.name], r.winPct);
+      if (win && prevWin[r.name] != null && prevWin[r.name] !== r.winPct && inViewport(win)) animatePct(win, prevWin[r.name], r.winPct, fmtWin(r.winRaw));
       prevWin[r.name] = r.winPct;
     });
   }
@@ -245,7 +256,7 @@
         ${avatar(name, t1, 60)}
         <div>
           <div class="mh-name">${name}</div>
-          <div class="mh-meta"><span class="chip prob">${st ? st.winPct : 0}% win prob</span><span class="chip">${st ? st.points : 0} pts</span><span class="chip">${pl.alive}/4 alive</span>${winChip}</div>
+          <div class="mh-meta"><span class="chip prob">${st ? fmtWin(st.winRaw) : "0%"} win prob</span><span class="chip">${st ? st.points : 0} pts</span><span class="chip">${pl.alive}/4 alive</span>${winChip}</div>
         </div>
       </div>
       <div class="mteams">${pl.picks.map((pk) => `
