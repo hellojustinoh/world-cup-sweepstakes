@@ -228,16 +228,26 @@
         <div class="m-side${cls("home")}">${flagCell(f.home, f.homeTBD)}${nameCell(f.home, f.homeTBD)}</div>
         <div class="m-mid">
           <div class="m-vs">${f.oh ? `<span class="m-own${ownCls("home")}">${ownerAvatar(f.oh, 20)}</span>` : ""}${mid}${f.oa ? `<span class="m-own${ownCls("away")}">${ownerAvatar(f.oa, 20)}</span>` : ""}</div>
-          <span class="m-round">${f.round || ""}</span>
           <span class="m-when">${f.played ? "FT · " + date : date + (f.time ? " · " + f.time : "")}</span>
         </div>
         <div class="m-side r${cls("away")}">${flagCell(f.away, f.awayTBD)}${nameCell(f.away, f.awayTBD)}</div>
       </div>`;
     };
     const up = res.upcoming || [], done = res.recent || [];
-    let html = "";
-    if (up.length) html += `<div class="fix-sub">Upcoming · ${up.length}</div><div class="fixgrid">${up.map(row).join("")}</div>`;
-    if (done.length) html += `<div class="fix-sub">Results · ${done.length}</div><div class="fixgrid">${done.map(row).join("")}</div>`;
+    // Group a list into rounds (keeps each list's own ordering within a round).
+    const ROUND_ORD = { "group-stage": 0, "round-of-32": 1, "round-of-16": 2, "quarterfinals": 3, "semifinals": 4, "3rd-place-match": 5, "final": 6 };
+    const byRound = (list, latestFirst) => {
+      const g = new Map();
+      list.forEach((f) => { const k = f.round || "Group stage"; if (!g.has(k)) g.set(k, { round: k, ord: ROUND_ORD[f.roundSlug] ?? 0, items: [] }); g.get(k).items.push(f); });
+      return [...g.values()].sort((a, b) => latestFirst ? b.ord - a.ord : a.ord - b.ord);
+    };
+    const section = (label, list, latestFirst) => {
+      if (!list.length) return "";
+      return `<div class="fix-sub">${label} · ${list.length}</div>` + byRound(list, latestFirst).map((grp) =>
+        `<div class="round-h ${grp.ord > 0 ? "ko" : ""}"><span>${grp.round}</span></div><div class="fixgrid">${grp.items.map(row).join("")}</div>`).join("");
+    };
+    // Upcoming: nearest round first. Results: most recent round first.
+    const html = section("Upcoming", up, false) + section("Results", done, true);
     $("#fixwrap").innerHTML = html || `<div class="card" style="padding:24px;color:var(--muted)">No pool fixtures yet.</div>`;
   }
 

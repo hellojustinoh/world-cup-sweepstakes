@@ -14,7 +14,7 @@
     Yasmin:    { s: "efc59a", h: "241e18", hair: "long" },            // Persian F
     Justin:    { s: "ffdcc0", h: "17171c", hair: "shortCombover" },   // Korean M, black hair
     Shermaine: { s: "ffd9b8", h: "241f2a", hair: "straightBun" },     // Singaporean F
-    Katie:     { s: "ffe4cf", h: "c79a4e", hair: "bobBangs" },        // NZ caucasian F
+    Katie:     { s: "ffe4cf", h: "6b4a2e", hair: "bobBangs" },        // NZ caucasian F, brown hair
     David:     { s: "ffdcc0", h: "1f1a24", hair: "shortComboverChops" }, // Chinese M
     Regina:    { s: "ffd6b4", h: "241f2a", hair: "extraLong" },       // Singaporean F
     Meiyin:    { s: "ffd9b8", h: "17171c", hair: "long" },            // Singaporean F, medium-long black hair
